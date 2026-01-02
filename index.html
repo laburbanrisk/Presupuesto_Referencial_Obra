@@ -1,588 +1,459 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Calculator, 
-  ChevronDown, 
-  ChevronUp, 
-  Info, 
-  Printer,
-  RefreshCw,
-  Youtube,
-  Facebook,
-  Instagram,
-  MapPin,
-  Settings,
-  BookOpen,
-  AlertCircle,
-  Building2,
-  Briefcase
-} from 'lucide-react';
-
-// ==========================================
-// CONFIGURACIÓN Y DATOS
-// ==========================================
-
-const CVU_DATA = {
-  muros: {
-    label: "1. Muros y Columnas",
-    options: [
-      { id: 'A', label: 'A: Estructuras laminares, concreto armado, placas', value: 650.20 },
-      { id: 'B', label: 'B: Pórticos de concreto armado, ladrillo', value: 450.50 },
-      { id: 'C', label: 'C: Placas de concreto, albañilería armada', value: 380.10 },
-      { id: 'D', label: 'D: Ladrillo o similar sin confinamiento', value: 250.00 },
-      { id: 'E', label: 'E: Adobe, tapial o quincha', value: 120.00 },
-    ]
-  },
-  techos: {
-    label: "2. Techos",
-    options: [
-      { id: 'A', label: 'A: Losa concreto armado luces > 6m', value: 300.50 },
-      { id: 'B', label: 'B: Aligerado o losa de concreto armado', value: 210.30 },
-      { id: 'C', label: 'C: Calamina, fibra de cemento o similar', value: 95.20 },
-      { id: 'D', label: 'D: Madera rústica, caña o similar', value: 45.00 },
-    ]
-  },
-  pisos: {
-    label: "3. Pisos",
-    options: [
-      { id: 'A', label: 'A: Mármol importado, porcelanato fino', value: 180.40 },
-      { id: 'B', label: 'B: Parquet, madera fina, cerámica', value: 120.10 },
-      { id: 'C', label: 'C: Loseta, cemento pulido, laminado', value: 85.50 },
-      { id: 'D', label: 'D: Cemento frotachado', value: 45.55 },
-      { id: 'E', label: 'E: Tierra compactada', value: 0.00 },
-    ]
-  },
-  puertas: {
-    label: "4. Puertas y Ventanas",
-    options: [
-      { id: 'A', label: 'A: Aluminio pesado, madera selecta, vidrio templado', value: 160.80 },
-      { id: 'B', label: 'B: Aluminio estándar, madera tratada', value: 95.40 },
-      { id: 'C', label: 'C: Hierro, madera corriente', value: 65.20 },
-      { id: 'D', label: 'D: Sin puertas ni ventanas', value: 0.00 },
-    ]
-  },
-  revestimientos: {
-    label: "5. Revestimientos",
-    options: [
-      { id: 'A', label: 'A: Enchape fino (madera/piedra) en todo ambiente', value: 190.50 },
-      { id: 'B', label: 'B: Tarrajeo frotachado y pintura lavable', value: 110.20 },
-      { id: 'C', label: 'C: Tarrajeo simple o estuco', value: 75.80 },
-      { id: 'D', label: 'D: Sin revestimiento (ladrillo/adobe visto)', value: 0.00 },
-    ]
-  },
-  banos: {
-    label: "6. Baños",
-    options: [
-      { id: 'A', label: 'A: Baños completos de lujo (mayólica decorativa)', value: 110.50 },
-      { id: 'B', label: 'B: Baños completos estándar (blancos)', value: 65.40 },
-      { id: 'C', label: 'C: Baños básicos / rústicos', value: 35.20 },
-      { id: 'D', label: 'D: Sin aparatos sanitarios', value: 0.00 },
-    ]
-  },
-  instalaciones: {
-    label: "7. Instalaciones Eléctricas y Sanitarias",
-    options: [
-      { id: 'A', label: 'A: Aire acondicionado, bombeo, trifásica', value: 150.00 },
-      { id: 'B', label: 'B: Agua fría/caliente, corriente, teléfono', value: 95.80 },
-      { id: 'C', label: 'C: Agua fría, corriente monofásica', value: 42.26 },
-      { id: 'D', label: 'D: Sin instalaciones', value: 0.00 },
-    ]
-  }
-};
-
-// Icono SVG personalizado para TikTok
-const TiktokIcon = ({ className }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-  </svg>
-);
-
-// Componente para tarjetas de selección
-const SelectionCard = ({ categoryKey, data, selected, onSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = data.options.find(opt => opt.id === selected);
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-3 overflow-hidden transition-all duration-200">
-      <div 
-        className={`p-4 flex items-center justify-between cursor-pointer ${selected ? 'bg-slate-50 border-l-4 border-blue-600' : 'bg-white'}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">{data.label}</span>
-          <span className={`text-base font-semibold ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
-            {selectedOption ? `${selectedOption.id} - S/ ${selectedOption.value.toFixed(2)}` : 'Seleccionar categoría...'}
-          </span>
-        </div>
-        {isOpen ? <ChevronUp className="text-slate-400" size={18} /> : <ChevronDown className="text-slate-400" size={18} />}
-      </div>
-
-      {isOpen && (
-        <div className="bg-slate-50 border-t border-slate-100">
-          {data.options.map((option) => (
-            <div 
-              key={option.id}
-              onClick={() => {
-                onSelect(categoryKey, option.id);
-                setIsOpen(false);
-              }}
-              className={`p-3 pl-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-blue-50 flex justify-between items-center ${selected === option.id ? 'bg-blue-50' : ''}`}
-            >
-              <div className="flex-1 pr-4">
-                <span className="font-bold text-slate-700 mr-2">{option.id}</span>
-                <span className="text-xs text-slate-600">{option.label}</span>
-              </div>
-              <div className="text-right whitespace-nowrap font-mono text-slate-700 font-bold text-sm">
-                S/ {option.value.toFixed(2)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default function App() {
-  const [area, setArea] = useState('');
-  const [numPisos, setNumPisos] = useState(1);
-  const [usoObra, setUsoObra] = useState('vivienda');
-  
-  const [selections, setSelections] = useState({
-    muros: '', techos: '', pisos: '', puertas: '', revestimientos: '', banos: '', instalaciones: ''
-  });
-  
-  // Estados para configuración técnica (Costos Indirectos)
-  const [ggPct, setGgPct] = useState(15);      // Gastos Generales (Default libro: ~10-15%)
-  const [utilidadPct, setUtilidadPct] = useState(10); // Utilidad (Default libro: ~5-10%)
-  const [includeIgv, setIncludeIgv] = useState(false); // IGV 18%
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const [showResult, setShowResult] = useState(false);
-  const resultRef = useRef(null);
-
-  const handleSelect = (category, value) => {
-    setSelections(prev => ({ ...prev, [category]: value }));
-  };
-
-  const calculateTotal = () => {
-    let totalUnitValue = 0;
-    Object.keys(selections).forEach(key => {
-      const selectedId = selections[key];
-      if (selectedId) {
-        const option = CVU_DATA[key].options.find(opt => opt.id === selectedId);
-        if (option) totalUnitValue += option.value;
-      }
-    });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora CVU - Presupuesto de Obra</title>
     
-    // Regla del CVU: "En Edificios aumentar el valor por m2 en 5% a partir del 5to. Piso"
-    // Interpretación para calculadora: Si la edificación tiene 5 pisos o más, se asume mayor complejidad estructural.
-    const factorAltura = numPisos >= 5 ? 1.05 : 1.00;
-    const unitValueAdjusted = totalUnitValue * factorAltura;
-
-    const areaNum = parseFloat(area) || 0;
+    <!-- 1. Tailwind CSS (Estilos) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    // Metodología Libro "Costos y Presupuestos":
-    // 1. Costo Directo (Material + Mano de Obra + Equipos) = CVU Ajustado * Área
-    const costoDirecto = unitValueAdjusted * areaNum;
+    <!-- 2. React y ReactDOM (Motor de la app) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    // 2. Costo Indirecto (Gastos Generales + Utilidad)
-    const gastosGenerales = costoDirecto * (ggPct / 100); 
-    const utilidad = costoDirecto * (utilidadPct / 100);
-    
-    // 3. Subtotal
-    const subtotal = costoDirecto + gastosGenerales + utilidad;
+    <!-- 3. Babel (Para entender el código moderno) -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-    // 4. Tributos (IGV)
-    const igv = includeIgv ? subtotal * 0.18 : 0;
-    
-    const totalPresupuesto = subtotal + igv;
-
-    return {
-      unitValue: totalUnitValue,
-      factorAltura,
-      unitValueAdjusted,
-      costoDirecto,
-      gastosGenerales,
-      utilidad,
-      subtotal,
-      igv,
-      totalPresupuesto
-    };
-  };
-
-  const isFormComplete = () => {
-    return area && Object.values(selections).every(val => val !== '');
-  };
-
-  const resetForm = () => {
-    setSelections({
-      muros: '', techos: '', pisos: '', puertas: '', revestimientos: '', banos: '', instalaciones: ''
-    });
-    setArea('');
-    setNumPisos(1);
-    setUsoObra('vivienda');
-    setShowResult(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const results = calculateTotal();
-
-  return (
-    <div className="min-h-screen bg-gray-100 font-sans text-slate-800 flex flex-col md:py-6">
-      <style>{`
+    <!-- Estilos adicionales -->
+    <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
-      `}</style>
+        /* Animaciones simples */
+        .animate-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-800">
 
-      <div className="flex-1 w-full max-w-lg mx-auto bg-white md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full md:h-[95vh] relative">
-        
-        {/* === HEADER === */}
-        <header className="bg-slate-50/90 p-5 border-b border-gray-200 z-10">
-          <div className="flex justify-between items-start">
-            <div className="w-full">
-              {/* Referencias Legales / Bibliográficas */}
-              <div className="flex flex-col gap-1 mb-2 bg-blue-50 p-2 rounded border border-blue-100">
-                <span className="text-[9px] font-bold text-blue-800 leading-tight">
-                  FUENTE: Cuadro de Valores Unitarios Oficiales de Edificaciones para Lima Metropolitana y Provincia Constitucional del Callao Vigente desde el 01 al 31 de Diciembre del 2025
-                </span>
-                <span className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-1">
-                  <BookOpen size={10} /> Libro: Costos y Presupuestos (ISBN N.° 978-612-304-282-0)
-                </span>
+    <!-- Aquí se montará la aplicación -->
+    <div id="root"></div>
+
+    <!-- CÓDIGO DE LA APLICACIÓN -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // ICONOS (Incrustados para no depender de librerías externas)
+        // ==========================================
+        const IconBase = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Calculator = (p) => <IconBase {...p}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></IconBase>;
+        const ChevronDown = (p) => <IconBase {...p}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const ChevronUp = (p) => <IconBase {...p}><path d="m18 15-6-6-6 6"/></IconBase>;
+        const Info = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const Printer = (p) => <IconBase {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></IconBase>;
+        const RefreshCw = (p) => <IconBase {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>;
+        const Youtube = (p) => <IconBase {...p}><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></IconBase>;
+        const Facebook = (p) => <IconBase {...p}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></IconBase>;
+        const Instagram = (p) => <IconBase {...p}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></IconBase>;
+        const MapPin = (p) => <IconBase {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const Settings = (p) => <IconBase {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.73v.51a2 2 0 0 1-1 1.73l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.73v-.51a2 2 0 0 1 1-1.73l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const AlertCircle = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
+        const Building2 = (p) => <IconBase {...p}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></IconBase>;
+        const Briefcase = (p) => <IconBase {...p}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconBase>;
+        const PieChart = (p) => <IconBase {...p}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></IconBase>;
+        const BarChart3 = (p) => <IconBase {...p}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></IconBase>;
+        const TiktokIcon = ({ className }) => (
+          <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+          </svg>
+        );
+
+        // ==========================================
+        // CONFIGURACIÓN Y DATOS
+        // ==========================================
+        const CVU_DATA = {
+          muros: {
+            label: "1. Muros y Columnas",
+            color: "#1e293b",
+            options: [
+              { id: 'A', label: 'A: Estructuras laminares, concreto armado, placas', value: 650.20 },
+              { id: 'B', label: 'B: Pórticos de concreto armado, ladrillo', value: 450.50 },
+              { id: 'C', label: 'C: Placas de concreto, albañilería armada', value: 380.10 },
+              { id: 'D', label: 'D: Ladrillo o similar sin confinamiento', value: 250.00 },
+              { id: 'E', label: 'E: Adobe, tapial o quincha', value: 120.00 },
+            ]
+          },
+          techos: {
+            label: "2. Techos",
+            color: "#2563eb",
+            options: [
+              { id: 'A', label: 'A: Losa concreto armado luces > 6m', value: 300.50 },
+              { id: 'B', label: 'B: Aligerado o losa de concreto armado', value: 210.30 },
+              { id: 'C', label: 'C: Calamina, fibra de cemento o similar', value: 95.20 },
+              { id: 'D', label: 'D: Madera rústica, caña o similar', value: 45.00 },
+            ]
+          },
+          pisos: {
+            label: "3. Pisos",
+            color: "#0891b2",
+            options: [
+              { id: 'A', label: 'A: Mármol importado, porcelanato fino', value: 180.40 },
+              { id: 'B', label: 'B: Parquet, madera fina, cerámica', value: 120.10 },
+              { id: 'C', label: 'C: Loseta, cemento pulido, laminado', value: 85.50 },
+              { id: 'D', label: 'D: Cemento frotachado', value: 45.55 },
+              { id: 'E', label: 'E: Tierra compactada', value: 0.00 },
+            ]
+          },
+          puertas: {
+            label: "4. Puertas y Ventanas",
+            color: "#d97706",
+            options: [
+              { id: 'A', label: 'A: Aluminio pesado, madera selecta, vidrio templado', value: 160.80 },
+              { id: 'B', label: 'B: Aluminio estándar, madera tratada', value: 95.40 },
+              { id: 'C', label: 'C: Hierro, madera corriente', value: 65.20 },
+              { id: 'D', label: 'D: Sin puertas ni ventanas', value: 0.00 },
+            ]
+          },
+          revestimientos: {
+            label: "5. Revestimientos",
+            color: "#db2777",
+            options: [
+              { id: 'A', label: 'A: Enchape fino (madera/piedra) en todo ambiente', value: 190.50 },
+              { id: 'B', label: 'B: Tarrajeo frotachado y pintura lavable', value: 110.20 },
+              { id: 'C', label: 'C: Tarrajeo simple o estuco', value: 75.80 },
+              { id: 'D', label: 'D: Sin revestimiento (ladrillo/adobe visto)', value: 0.00 },
+            ]
+          },
+          banos: {
+            label: "6. Baños",
+            color: "#7c3aed",
+            options: [
+              { id: 'A', label: 'A: Baños completos de lujo (mayólica decorativa)', value: 110.50 },
+              { id: 'B', label: 'B: Baños completos estándar (blancos)', value: 65.40 },
+              { id: 'C', label: 'C: Baños básicos / rústicos', value: 35.20 },
+              { id: 'D', label: 'D: Sin aparatos sanitarios', value: 0.00 },
+            ]
+          },
+          instalaciones: {
+            label: "7. Instalaciones",
+            color: "#16a34a",
+            options: [
+              { id: 'A', label: 'A: Aire acondicionado, bombeo, trifásica', value: 150.00 },
+              { id: 'B', label: 'B: Agua fría/caliente, corriente, teléfono', value: 95.80 },
+              { id: 'C', label: 'C: Agua fría, corriente monofásica', value: 42.26 },
+              { id: 'D', label: 'D: Sin instalaciones', value: 0.00 },
+            ]
+          }
+        };
+
+        // --- COMPONENTES ---
+
+        const DonutChart = ({ data }) => {
+          let cumulativePercent = 0;
+          const radius = 16;
+          const circumference = 2 * Math.PI * radius;
+          const activeData = data.filter(d => d.value > 0);
+          const totalValue = activeData.reduce((acc, curr) => acc + curr.value, 0);
+
+          if (totalValue === 0) return null;
+
+          return (
+            <div className="flex flex-col items-center">
+              <div className="relative w-48 h-48">
+                <svg viewBox="0 0 40 40" className="w-full h-full transform -rotate-90">
+                  {activeData.map((slice, index) => {
+                    const percent = slice.value / totalValue;
+                    const strokeDasharray = `${percent * circumference} ${circumference}`;
+                    const strokeDashoffset = -cumulativePercent * circumference;
+                    cumulativePercent += percent;
+
+                    return (
+                      <circle key={index} cx="20" cy="20" r={radius} fill="transparent" stroke={slice.color} strokeWidth="6" strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} className="transition-all duration-500 hover:opacity-80" />
+                    );
+                  })}
+                  <circle cx="20" cy="20" r={radius} fill="transparent" stroke="transparent" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xs text-slate-400 font-bold uppercase">Valor Unit.</span>
+                  <span className="text-lg font-bold text-slate-700">S/ {totalValue.toFixed(0)}</span>
+                </div>
               </div>
-              
-              <h1 className="text-xl font-extrabold text-slate-800 leading-none mb-1 mt-3 uppercase">Presupuesto Referencial de Obra (CVU)</h1>
-              <h2 className="text-xs font-bold text-slate-500 leading-tight uppercase tracking-wide">Estimación por m² con CVU oficial, actualizada por mes</h2>
-              
-              <div className="flex justify-between items-end mt-2">
-                <button 
-                  onClick={resetForm}
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors ml-auto"
-                  title="Reiniciar cálculo"
-                >
-                  <RefreshCw size={16} />
-                </button>
+              <div className="w-full mt-4 grid grid-cols-2 gap-x-2 gap-y-1">
+                {activeData.map((item, idx) => (
+                  <div key={idx} className="flex items-center text-[10px] text-slate-600">
+                    <span className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0" style={{ backgroundColor: item.color }}></span>
+                    <span className="truncate flex-1">{item.label}</span>
+                    <span className="font-bold ml-1">{Math.round((item.value / totalValue) * 100)}%</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </header>
+          );
+        };
 
-        {/* === BODY (Scrollable) === */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-white/50 space-y-6 scrollbar-thin scrollbar-thumb-slate-300">
-          
-          {/* Configuración Técnica (Costos Indirectos) */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-             <button 
-               onClick={() => setShowAdvanced(!showAdvanced)}
-               className="w-full flex items-center justify-between p-3 text-xs font-bold text-slate-600 uppercase tracking-wide hover:bg-slate-100 transition-colors"
-             >
-               <span className="flex items-center gap-2">
-                 <Settings size={14} className="text-orange-500" /> 
-                 Parámetros y Gastos Generales
-               </span>
-               {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-             </button>
-             
-             {showAdvanced && (
-               <div className="p-4 pt-0 border-t border-slate-100 bg-white animate-in slide-in-from-top-2">
-                 <div className="text-[10px] text-slate-400 mb-3 italic">
-                   Basado en estructura de costos del libro "Costos y Presupuestos en Edificaciones"
-                 </div>
-                 
-                 <div className="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Gastos Generales (%)</label>
-                      <input 
-                        type="number" 
-                        value={ggPct} 
-                        onChange={(e) => setGgPct(Number(e.target.value))}
-                        className="w-full p-2 border border-slate-200 rounded text-sm font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Utilidad (%)</label>
-                      <input 
-                        type="number" 
-                        value={utilidadPct} 
-                        onChange={(e) => setUtilidadPct(Number(e.target.value))}
-                        className="w-full p-2 border border-slate-200 rounded text-sm font-semibold"
-                      />
-                    </div>
-                 </div>
+        const CostBarChart = ({ results, includeIgv }) => {
+          const maxVal = results.totalPresupuesto;
+          const items = [
+            { label: 'Costo Directo', value: results.costoDirecto, color: 'bg-blue-600', width: (results.costoDirecto / maxVal) * 100 },
+            { label: 'Gastos Gral.', value: results.gastosGenerales, color: 'bg-slate-500', width: (results.gastosGenerales / maxVal) * 100 },
+            { label: 'Utilidad', value: results.utilidad, color: 'bg-emerald-500', width: (results.utilidad / maxVal) * 100 },
+          ];
+          if (includeIgv) {
+            items.push({ label: 'IGV (18%)', value: results.igv, color: 'bg-red-400', width: (results.igv / maxVal) * 100 });
+          }
 
-                 <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 cursor-pointer" onClick={() => setIncludeIgv(!includeIgv)}>
-                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeIgv ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}>
-                      {includeIgv && <div className="w-2 h-2 bg-white rounded-sm"></div>}
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">Incluir IGV (18%)</span>
-                 </div>
-               </div>
-             )}
-          </div>
-
-          {/* Intro Section */}
-          <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 flex gap-3 items-start">
-            <Info className="text-blue-500 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-xs text-slate-600 leading-relaxed">
-              <p>
-                Seleccione las características técnicas y la cantidad de pisos. El sistema aplicará automáticamente el <strong>factor de altura (+5%)</strong> si corresponde según la norma.
-              </p>
-            </div>
-          </div>
-
-          {/* 1. Datos Generales (Enriquecido) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-              1. Datos Generales de la Obra
-            </label>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
-               
-               {/* Área Techada */}
-               <div>
-                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Área Techada Total (m²)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      placeholder="Ej. 120"
-                      className="w-full p-2.5 pl-3 text-lg font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">m²</span>
+          return (
+            <div className="space-y-3 mt-2">
+              {items.map((item, idx) => (
+                <div key={idx} className="w-full">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-1">
+                    <span>{item.label}</span>
+                    <span>S/ {item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4">
-                 {/* Cantidad de Pisos */}
-                 <div>
-                   <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                      <Building2 size={12} /> N° Pisos
-                   </label>
-                   <input 
-                     type="number" 
-                     min="1"
-                     max="50"
-                     value={numPisos} 
-                     onChange={(e) => setNumPisos(parseInt(e.target.value) || 1)}
-                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold"
-                   />
-                 </div>
-
-                 {/* Uso de la Obra */}
-                 <div>
-                   <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                      <Briefcase size={12} /> Uso
-                   </label>
-                   <select 
-                     value={usoObra}
-                     onChange={(e) => setUsoObra(e.target.value)}
-                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none"
-                   >
-                     <option value="vivienda">Vivienda</option>
-                     <option value="comercio">Comercio</option>
-                     <option value="oficina">Oficinas</option>
-                     <option value="industria">Industria</option>
-                     <option value="educacion">Educación</option>
-                     <option value="salud">Salud</option>
-                   </select>
-                 </div>
-               </div>
-               
-               {/* Aviso de Factor de Altura */}
-               {numPisos >= 5 && (
-                 <div className="text-[10px] text-orange-600 bg-orange-50 p-2 rounded border border-orange-100 flex items-center gap-2">
-                   <AlertCircle size={12} />
-                   <span>Se aplica +5% al valor unitario (Edif. &ge; 5 pisos)</span>
-                 </div>
-               )}
-
-            </div>
-          </div>
-
-          {/* Category Selectors */}
-          <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">
-              2. Componentes (S/m²)
-            </label>
-            {Object.keys(CVU_DATA).map((key) => (
-              <SelectionCard 
-                key={key} 
-                categoryKey={key} 
-                data={CVU_DATA[key]} 
-                selected={selections[key]} 
-                onSelect={handleSelect} 
-              />
-            ))}
-          </div>
-
-          {/* Calculate Button */}
-          <div className="pt-2">
-            <button
-              disabled={!isFormComplete()}
-              onClick={() => {
-                setShowResult(true);
-                setTimeout(() => {
-                  resultRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-              }}
-              className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] border
-                ${isFormComplete() 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-blue-900/20' 
-                  : 'bg-slate-200 text-slate-400 border-slate-200 cursor-not-allowed'}`}
-            >
-              <Calculator size={22} />
-              CALCULAR COSTO TOTAL
-            </button>
-            {!isFormComplete() && area && (
-              <p className="text-center text-[10px] text-red-400 mt-2 font-medium flex items-center justify-center gap-1">
-                <AlertCircle size={10} /> Complete todas las categorías para calcular
-              </p>
-            )}
-          </div>
-
-          {/* Results Section */}
-          {showResult && (
-            <div ref={resultRef} className="animate-in fade-in slide-in-from-bottom-5 duration-500 pb-4">
-              <div className="bg-slate-800 text-white rounded-xl shadow-xl overflow-hidden">
-                <div className="p-5 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-900">
-                  <h3 className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Costo Total de Obra</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-green-400">S/ {results.totalPresupuesto.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    {includeIgv && <span className="text-xs text-green-600 font-bold bg-green-900/30 px-1 rounded">INC. IGV</span>}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1 font-mono">
-                    Uso: {usoObra.charAt(0).toUpperCase() + usoObra.slice(1)} | {numPisos} Pisos
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${item.color} transition-all duration-700 ease-out`} style={{ width: `${item.width}%` }}></div>
                   </div>
                 </div>
+              ))}
+            </div>
+          );
+        };
 
-                <div className="p-5 space-y-3 bg-slate-800/90">
-                   {/* Costo Directo */}
-                   <div className="flex justify-between items-center text-xs text-slate-400">
-                    <span>Valor Unitario Base</span>
-                    <span className="font-mono">S/ {results.unitValue.toFixed(2)}</span>
-                   </div>
+        const SelectionCard = ({ categoryKey, data, selected, onSelect }) => {
+          const [isOpen, setIsOpen] = useState(false);
+          const selectedOption = data.options.find(opt => opt.id === selected);
 
-                   {results.factorAltura > 1 && (
-                     <div className="flex justify-between items-center text-xs text-orange-300">
-                      <span>Factor Altura ({numPisos} pisos)</span>
-                      <span className="font-mono">+ 5%</span>
-                     </div>
-                   )}
+          return (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-3 overflow-hidden transition-all duration-200">
+              <div 
+                className={`p-4 flex items-center justify-between cursor-pointer ${selected ? 'bg-slate-50 border-l-4' : 'bg-white'}`}
+                style={{ borderLeftColor: selected ? data.color : 'transparent' }}
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }}></span>
+                     {data.label}
+                  </span>
+                  <span className={`text-base font-semibold ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
+                    {selectedOption ? `${selectedOption.id} - S/ ${selectedOption.value.toFixed(2)}` : 'Seleccionar categoría...'}
+                  </span>
+                </div>
+                {isOpen ? <ChevronUp className="text-slate-400" size={18} /> : <ChevronDown className="text-slate-400" size={18} />}
+              </div>
 
-                   <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-700/50">
-                    <span className="text-white font-bold">Valor Unitario Ajustado</span>
-                    <span className="font-mono text-white font-bold">S/ {results.unitValueAdjusted.toFixed(2)}</span>
-                   </div>
-                   
-                   <div className="flex justify-between items-center text-sm py-1">
-                    <span className="text-white font-bold">1. Costo Directo Total</span>
-                    <span className="font-mono text-white font-bold">S/ {results.costoDirecto.toLocaleString()}</span>
-                   </div>
-
-                  {/* Costos Indirectos */}
-                  <div className="pl-3 border-l-2 border-slate-600 space-y-2 py-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Gastos Generales ({ggPct}%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.gastosGenerales.toLocaleString()}</span>
+              {isOpen && (
+                <div className="bg-slate-50 border-t border-slate-100">
+                  {data.options.map((option) => (
+                    <div 
+                      key={option.id}
+                      onClick={() => { onSelect(categoryKey, option.id); setIsOpen(false); }}
+                      className={`p-3 pl-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-white flex justify-between items-center ${selected === option.id ? 'bg-white' : ''}`}
+                    >
+                      <div className="flex-1 pr-4">
+                        <span className="font-bold text-slate-700 mr-2">{option.id}</span>
+                        <span className="text-xs text-slate-600">{option.label}</span>
+                      </div>
+                      <div className="text-right whitespace-nowrap font-mono text-slate-700 font-bold text-sm">
+                        S/ {option.value.toFixed(2)}
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Utilidad ({utilidadPct}%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.utilidad.toLocaleString()}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        function App() {
+          const [area, setArea] = useState('');
+          const [numPisos, setNumPisos] = useState(1);
+          const [usoObra, setUsoObra] = useState('vivienda');
+          const [selections, setSelections] = useState({ muros: '', techos: '', pisos: '', puertas: '', revestimientos: '', banos: '', instalaciones: '' });
+          const [ggPct, setGgPct] = useState(15);      
+          const [utilidadPct, setUtilidadPct] = useState(10); 
+          const [includeIgv, setIncludeIgv] = useState(false); 
+          const [showAdvanced, setShowAdvanced] = useState(false);
+          const [resultsTab, setResultsTab] = useState('summary');
+          const [showResult, setShowResult] = useState(false);
+          const resultRef = useRef(null);
+
+          const handleSelect = (category, value) => setSelections(prev => ({ ...prev, [category]: value }));
+
+          const calculateTotal = () => {
+            let totalUnitValue = 0;
+            const chartData = [];
+            Object.keys(selections).forEach(key => {
+              const selectedId = selections[key];
+              let val = 0;
+              if (selectedId) {
+                const option = CVU_DATA[key].options.find(opt => opt.id === selectedId);
+                if (option) val = option.value;
+              }
+              totalUnitValue += val;
+              chartData.push({ label: CVU_DATA[key].label.split('. ')[1], value: val, color: CVU_DATA[key].color });
+            });
+            
+            const factorAltura = numPisos >= 5 ? 1.05 : 1.00;
+            const unitValueAdjusted = totalUnitValue * factorAltura;
+            const areaNum = parseFloat(area) || 0;
+            const costoDirecto = unitValueAdjusted * areaNum;
+            const gastosGenerales = costoDirecto * (ggPct / 100); 
+            const utilidad = costoDirecto * (utilidadPct / 100);
+            const subtotal = costoDirecto + gastosGenerales + utilidad;
+            const igv = includeIgv ? subtotal * 0.18 : 0;
+            const totalPresupuesto = subtotal + igv;
+
+            return { unitValue: totalUnitValue, factorAltura, unitValueAdjusted, costoDirecto, gastosGenerales, utilidad, subtotal, igv, totalPresupuesto, chartData };
+          };
+
+          const isFormComplete = () => area && Object.values(selections).every(val => val !== '');
+          const resetForm = () => {
+            setSelections({ muros: '', techos: '', pisos: '', puertas: '', revestimientos: '', banos: '', instalaciones: '' });
+            setArea(''); setNumPisos(1); setUsoObra('vivienda'); setShowResult(false); setResultsTab('summary');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+          const handlePrint = () => window.print();
+          const results = calculateTotal();
+
+          return (
+            <div className="min-h-screen font-sans flex flex-col md:py-6">
+              <div className="flex-1 w-full max-w-lg mx-auto bg-white md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full md:h-[95vh] relative">
+                
+                {/* HEADER */}
+                <header className="bg-slate-50/90 p-5 border-b border-gray-200 z-10">
+                  <div className="flex justify-between items-start">
+                    <div className="w-full">
+                      <div className="flex flex-col gap-1 mb-2 bg-blue-50 p-2 rounded border border-blue-100">
+                        <span className="text-[9px] font-bold text-blue-800 leading-tight">FUENTE: Cuadro de Valores Unitarios Oficiales - Lima Metropolitana - Dic. 2025</span>
+                        <span className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-1"><BookOpen size={10} /> Libro: Costos y Presupuestos (ISBN N.° 978-612-304-282-0)</span>
+                      </div>
+                      <h1 className="text-xl font-extrabold text-slate-800 leading-none mb-1 mt-3 uppercase">Presupuesto Referencial (CVU)</h1>
+                      <h2 className="text-xs font-bold text-slate-500 leading-tight uppercase tracking-wide">Estimación por m² con CVU oficial</h2>
+                      <div className="flex justify-between items-end mt-2">
+                        <button onClick={resetForm} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors ml-auto" title="Reiniciar cálculo"><RefreshCw size={16} /></button>
+                      </div>
+                    </div>
+                  </div>
+                </header>
+
+                {/* BODY */}
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-white/50 space-y-6 scrollbar-thin scrollbar-thumb-slate-300">
+                  {/* CONFIGURACIÓN */}
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                     <button onClick={() => setShowAdvanced(!showAdvanced)} className="w-full flex items-center justify-between p-3 text-xs font-bold text-slate-600 uppercase tracking-wide hover:bg-slate-100 transition-colors">
+                       <span className="flex items-center gap-2"><Settings size={14} className="text-orange-500" /> Parámetros y Gastos Generales</span>
+                       {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                     </button>
+                     {showAdvanced && (
+                       <div className="p-4 pt-0 border-t border-slate-100 bg-white animate-in">
+                         <div className="text-[10px] text-slate-400 mb-3 italic">Basado en estructura de costos del libro "Costos y Presupuestos en Edificaciones"</div>
+                         <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Gastos Generales (%)</label><input type="number" value={ggPct} onChange={(e) => setGgPct(Number(e.target.value))} className="w-full p-2 border border-slate-200 rounded text-sm font-semibold" /></div>
+                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Utilidad (%)</label><input type="number" value={utilidadPct} onChange={(e) => setUtilidadPct(Number(e.target.value))} className="w-full p-2 border border-slate-200 rounded text-sm font-semibold" /></div>
+                         </div>
+                         <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 cursor-pointer" onClick={() => setIncludeIgv(!includeIgv)}>
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${includeIgv ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}>{includeIgv && <div className="w-2 h-2 bg-white rounded-sm"></div>}</div>
+                            <span className="text-xs font-bold text-slate-700">Incluir IGV (18%)</span>
+                         </div>
+                       </div>
+                     )}
+                  </div>
+
+                  <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 flex gap-3 items-start">
+                    <Info className="text-blue-500 flex-shrink-0 mt-0.5" size={20} />
+                    <div className="text-xs text-slate-600 leading-relaxed"><p>Seleccione las características técnicas y la cantidad de pisos. El sistema aplicará automáticamente el <strong>factor de altura (+5%)</strong> si corresponde según la norma.</p></div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">1. Datos Generales de la Obra</label>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                       <div>
+                         <label className="block text-xs font-bold text-slate-700 mb-1">Área Techada Total (m²)</label>
+                          <div className="relative">
+                            <input type="number" value={area} onChange={(e) => setArea(e.target.value)} placeholder="Ej. 120" className="w-full p-2.5 pl-3 text-lg font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">m²</span>
+                          </div>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                         <div><label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1"><Building2 size={12} /> N° Pisos</label><input type="number" min="1" max="50" value={numPisos} onChange={(e) => setNumPisos(parseInt(e.target.value) || 1)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold" /></div>
+                         <div>
+                           <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1"><Briefcase size={12} /> Uso</label>
+                           <select value={usoObra} onChange={(e) => setUsoObra(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none">
+                             <option value="vivienda">Vivienda</option><option value="comercio">Comercio</option><option value="oficina">Oficinas</option><option value="industria">Industria</option><option value="educacion">Educación</option><option value="salud">Salud</option>
+                           </select>
+                         </div>
+                       </div>
+                       {numPisos >= 5 && (<div className="text-[10px] text-orange-600 bg-orange-50 p-2 rounded border border-orange-100 flex items-center gap-2"><AlertCircle size={12} /><span>Se aplica +5% al valor unitario (Edif. &ge; 5 pisos)</span></div>)}
                     </div>
                   </div>
 
-                  {/* Subtotal */}
-                  <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50">
-                    <span className="text-slate-300 uppercase font-semibold">Subtotal</span>
-                    <span className="font-mono text-white">S/ {results.subtotal.toLocaleString()}</span>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">2. Componentes (S/m²)</label>
+                    {Object.keys(CVU_DATA).map((key) => (<SelectionCard key={key} categoryKey={key} data={CVU_DATA[key]} selected={selections[key]} onSelect={handleSelect} />))}
                   </div>
 
-                  {/* IGV */}
-                  {includeIgv && (
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">IGV (18%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.igv.toLocaleString()}</span>
+                  <div className="pt-2">
+                    <button disabled={!isFormComplete()} onClick={() => { setShowResult(true); setTimeout(() => { resultRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100); }} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] border ${isFormComplete() ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-blue-900/20' : 'bg-slate-200 text-slate-400 border-slate-200 cursor-not-allowed'}`}>
+                      <Calculator size={22} /> CALCULAR COSTO TOTAL
+                    </button>
+                    {!isFormComplete() && area && (<p className="text-center text-[10px] text-red-400 mt-2 font-medium flex items-center justify-center gap-1"><AlertCircle size={10} /> Complete todas las categorías para calcular</p>)}
+                  </div>
+
+                  {showResult && (
+                    <div ref={resultRef} className="animate-in pb-4">
+                      <div className="bg-slate-800 text-white rounded-xl shadow-xl overflow-hidden">
+                        <div className="p-5 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-900">
+                          <h3 className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Costo Total de Obra</h3>
+                          <div className="flex items-baseline gap-1"><span className="text-3xl font-bold text-green-400">S/ {results.totalPresupuesto.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>{includeIgv && <span className="text-xs text-green-600 font-bold bg-green-900/30 px-1 rounded">INC. IGV</span>}</div>
+                          <div className="text-xs text-slate-400 mt-1 font-mono">Uso: {usoObra.charAt(0).toUpperCase() + usoObra.slice(1)} | {numPisos} Pisos</div>
+                        </div>
+
+                        <div className="flex border-b border-slate-700 bg-slate-900/50">
+                           <button onClick={() => setResultsTab('summary')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${resultsTab === 'summary' ? 'text-white bg-slate-800 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}><Calculator size={14} /> Resumen</button>
+                           <button onClick={() => setResultsTab('charts')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${resultsTab === 'charts' ? 'text-white bg-slate-800 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}><PieChart size={14} /> Gráficos</button>
+                        </div>
+
+                        <div className="p-5 bg-slate-800/90">
+                          {resultsTab === 'summary' ? (
+                            <div className="space-y-3">
+                               <div className="flex justify-between items-center text-xs text-slate-400"><span>Valor Unitario Base</span><span className="font-mono">S/ {results.unitValue.toFixed(2)}</span></div>
+                               {results.factorAltura > 1 && (<div className="flex justify-between items-center text-xs text-orange-300"><span>Factor Altura ({numPisos} pisos)</span><span className="font-mono">+ 5%</span></div>)}
+                               <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-700/50"><span className="text-white font-bold">Valor Unitario Ajustado</span><span className="font-mono text-white font-bold">S/ {results.unitValueAdjusted.toFixed(2)}</span></div>
+                               <div className="flex justify-between items-center text-sm py-1"><span className="text-white font-bold">1. Costo Directo Total</span><span className="font-mono text-white font-bold">S/ {results.costoDirecto.toLocaleString()}</span></div>
+                               <div className="pl-3 border-l-2 border-slate-600 space-y-2 py-1">
+                                 <div className="flex justify-between items-center text-xs"><span className="text-slate-400">Gastos Generales ({ggPct}%)</span><span className="font-mono text-slate-300">S/ {results.gastosGenerales.toLocaleString()}</span></div>
+                                 <div className="flex justify-between items-center text-xs"><span className="text-slate-400">Utilidad ({utilidadPct}%)</span><span className="font-mono text-slate-300">S/ {results.utilidad.toLocaleString()}</span></div>
+                               </div>
+                               <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50"><span className="text-slate-300 uppercase font-semibold">Subtotal</span><span className="font-mono text-white">S/ {results.subtotal.toLocaleString()}</span></div>
+                               {includeIgv && (<div className="flex justify-between items-center text-xs"><span className="text-slate-400">IGV (18%)</span><span className="font-mono text-slate-300">S/ {results.igv.toLocaleString()}</span></div>)}
+                            </div>
+                          ) : (
+                            <div className="space-y-8 animate-in">
+                              <div className="bg-white rounded-lg p-4"><h4 className="text-slate-700 text-xs font-bold uppercase mb-4 flex items-center gap-2 border-b pb-2"><PieChart size={14} className="text-blue-600"/> Incidencia por Componente (m²)</h4><DonutChart data={results.chartData} /></div>
+                              <div className="bg-white rounded-lg p-4"><h4 className="text-slate-700 text-xs font-bold uppercase mb-4 flex items-center gap-2 border-b pb-2"><BarChart3 size={14} className="text-emerald-600"/> Estructura Total del Presupuesto</h4><CostBarChart results={results} includeIgv={includeIgv} /></div>
+                            </div>
+                          )}
+                          <button onClick={handlePrint} className="w-full mt-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-600"><Printer size={16} /> Imprimir Reporte Completo</button>
+                        </div>
+                      </div>
                     </div>
                   )}
-                  
-                  <button 
-                    onClick={handlePrint}
-                    className="w-full mt-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-600"
-                  >
-                    <Printer size={16} />
-                    Imprimir Reporte
-                  </button>
-                </div>
+                </main>
+
+                {/* FOOTER */}
+                <footer className="bg-black text-white p-4 pb-8 md:pb-6 border-t border-gray-800 flex flex-col items-center justify-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
+                  <p className="text-[10px] font-bold text-gray-500 tracking-wide">Elaborado por Lab Urban Risk</p>
+                  <div className="flex items-center gap-6">
+                    <a href="https://musucancha-rgb.github.io/PERU.Valor_arancelario_terrenos/" target="_blank" rel="noreferrer" className="text-orange-500 hover:text-orange-400 transition-transform transform hover:scale-110 active:scale-95"><MapPin size={24} /></a>
+                    <div className="w-px h-6 bg-gray-800"></div>
+                    <a href="https://youtube.com/@laburbanrisk" target="_blank" rel="noreferrer" className="text-[#FF0000] hover:opacity-80 transition-transform transform hover:scale-110"><Youtube size={24} /></a>
+                    <a href="https://www.facebook.com/share/1Db3ZgmTE4/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="text-[#1877F2] hover:opacity-80 transition-transform transform hover:scale-110"><Facebook size={24} /></a>
+                    <a href="https://www.instagram.com/laburbanrisk?igsh=MWNzam53enpzZng4Ng%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="text-[#E4405F] hover:opacity-80 transition-transform transform hover:scale-110"><Instagram size={24} /></a>
+                    <a href="https://www.tiktok.com/@laburbanrisk?_r=1&_t=ZN-92idJVeblZe" target="_blank" rel="noreferrer" className="text-white hover:text-gray-300 transition-transform transform hover:scale-110"><TiktokIcon className="w-6 h-6" /></a>
+                  </div>
+                </footer>
               </div>
             </div>
-          )}
-        </main>
+          );
+        }
 
-        {/* === FOOTER === */}
-        <footer className="bg-black text-white p-4 pb-8 md:pb-6 border-t border-gray-800 flex flex-col items-center justify-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
-          <p className="text-[10px] font-bold text-gray-500 tracking-wide">Elaborado por Lab Urban Risk</p>
-          
-          <div className="flex items-center gap-6">
-            {/* Map Icon */}
-            <a 
-              href="https://musucancha-rgb.github.io/PERU.Valor_arancelario_terrenos/" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-orange-500 hover:text-orange-400 transition-transform transform hover:scale-110 active:scale-95" 
-              title="Ver Mapa Valores Arancelarios"
-            >
-              <MapPin size={24} />
-            </a>
-            
-            <div className="w-px h-6 bg-gray-800"></div>
-
-            {/* Social Icons */}
-            <a 
-              href="https://youtube.com/@laburbanrisk" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-[#FF0000] hover:opacity-80 transition-transform transform hover:scale-110"
-            >
-              <Youtube size={24} />
-            </a>
-            <a 
-              href="https://www.facebook.com/share/1Db3ZgmTE4/?mibextid=wwXIfr" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-[#1877F2] hover:opacity-80 transition-transform transform hover:scale-110"
-            >
-              <Facebook size={24} />
-            </a>
-            <a 
-              href="https://www.instagram.com/laburbanrisk?igsh=MWNzam53enpzZng4Ng%3D%3D&utm_source=qr" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-[#E4405F] hover:opacity-80 transition-transform transform hover:scale-110"
-            >
-              <Instagram size={24} />
-            </a>
-            <a 
-              href="https://www.tiktok.com/@laburbanrisk?_r=1&_t=ZN-92idJVeblZe" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-white hover:text-gray-300 transition-transform transform hover:scale-110"
-            >
-              <TiktokIcon className="w-6 h-6" />
-            </a>
-          </div>
-        </footer>
-
-      </div>
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
