@@ -388,7 +388,7 @@
                   </div>
 
                   <div className="pt-2">
-                    <button disabled={!isFormComplete()} onClick={() => { setShowResult(true); setTimeout(() => { resultRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100); }} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] border ${isFormComplete() ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-blue-900/20' : 'bg-slate-200 text-slate-400 border-slate-200 cursor-not-allowed'}`}>
+                    <button disabled={!isFormComplete()} onClick={() => { setShowResult(true); setTimeout(() => { if (resultRef.current) { resultRef.current.scrollIntoView({ behavior: 'smooth' }); } }, 100); }} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] border ${isFormComplete() ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-blue-900/20' : 'bg-slate-200 text-slate-400 border-slate-200 cursor-not-allowed'}`}>
                       <Calculator size={22} /> CALCULAR COSTO TOTAL
                     </button>
                     {!isFormComplete() && area && (<p className="text-center text-[10px] text-red-400 mt-2 font-medium flex items-center justify-center gap-1"><AlertCircle size={10} /> Complete todas las categorías para calcular</p>)}
