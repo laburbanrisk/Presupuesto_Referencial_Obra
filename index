@@ -14,7 +14,9 @@ import {
   BookOpen,
   AlertCircle,
   Building2,
-  Briefcase
+  Briefcase,
+  PieChart,
+  BarChart3
 } from 'lucide-react';
 
 // ==========================================
@@ -24,6 +26,7 @@ import {
 const CVU_DATA = {
   muros: {
     label: "1. Muros y Columnas",
+    color: "#1e293b", // Slate 800
     options: [
       { id: 'A', label: 'A: Estructuras laminares, concreto armado, placas', value: 650.20 },
       { id: 'B', label: 'B: Pórticos de concreto armado, ladrillo', value: 450.50 },
@@ -34,6 +37,7 @@ const CVU_DATA = {
   },
   techos: {
     label: "2. Techos",
+    color: "#2563eb", // Blue 600
     options: [
       { id: 'A', label: 'A: Losa concreto armado luces > 6m', value: 300.50 },
       { id: 'B', label: 'B: Aligerado o losa de concreto armado', value: 210.30 },
@@ -43,6 +47,7 @@ const CVU_DATA = {
   },
   pisos: {
     label: "3. Pisos",
+    color: "#0891b2", // Cyan 600
     options: [
       { id: 'A', label: 'A: Mármol importado, porcelanato fino', value: 180.40 },
       { id: 'B', label: 'B: Parquet, madera fina, cerámica', value: 120.10 },
@@ -53,6 +58,7 @@ const CVU_DATA = {
   },
   puertas: {
     label: "4. Puertas y Ventanas",
+    color: "#d97706", // Amber 600
     options: [
       { id: 'A', label: 'A: Aluminio pesado, madera selecta, vidrio templado', value: 160.80 },
       { id: 'B', label: 'B: Aluminio estándar, madera tratada', value: 95.40 },
@@ -62,6 +68,7 @@ const CVU_DATA = {
   },
   revestimientos: {
     label: "5. Revestimientos",
+    color: "#db2777", // Pink 600
     options: [
       { id: 'A', label: 'A: Enchape fino (madera/piedra) en todo ambiente', value: 190.50 },
       { id: 'B', label: 'B: Tarrajeo frotachado y pintura lavable', value: 110.20 },
@@ -71,6 +78,7 @@ const CVU_DATA = {
   },
   banos: {
     label: "6. Baños",
+    color: "#7c3aed", // Violet 600
     options: [
       { id: 'A', label: 'A: Baños completos de lujo (mayólica decorativa)', value: 110.50 },
       { id: 'B', label: 'B: Baños completos estándar (blancos)', value: 65.40 },
@@ -79,7 +87,8 @@ const CVU_DATA = {
     ]
   },
   instalaciones: {
-    label: "7. Instalaciones Eléctricas y Sanitarias",
+    label: "7. Instalaciones",
+    color: "#16a34a", // Green 600
     options: [
       { id: 'A', label: 'A: Aire acondicionado, bombeo, trifásica', value: 150.00 },
       { id: 'B', label: 'B: Agua fría/caliente, corriente, teléfono', value: 95.80 },
@@ -101,6 +110,102 @@ const TiktokIcon = ({ className }) => (
   </svg>
 );
 
+// Componente de Gráfico de Dona (SVG Puro)
+const DonutChart = ({ data }) => {
+  let cumulativePercent = 0;
+  
+  // Calcular circunferencia
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+
+  // Filtrar datos con valor > 0
+  const activeData = data.filter(d => d.value > 0);
+  const totalValue = activeData.reduce((acc, curr) => acc + curr.value, 0);
+
+  if (totalValue === 0) return null;
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-48 h-48">
+        <svg viewBox="0 0 40 40" className="w-full h-full transform -rotate-90">
+          {activeData.map((slice, index) => {
+            const percent = slice.value / totalValue;
+            const strokeDasharray = `${percent * circumference} ${circumference}`;
+            const strokeDashoffset = -cumulativePercent * circumference;
+            cumulativePercent += percent;
+
+            return (
+              <circle
+                key={index}
+                cx="20"
+                cy="20"
+                r={radius}
+                fill="transparent"
+                stroke={slice.color}
+                strokeWidth="6"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                className="transition-all duration-500 hover:opacity-80"
+              />
+            );
+          })}
+          {/* Texto central */}
+          <circle cx="20" cy="20" r={radius} fill="transparent" stroke="transparent" />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-xs text-slate-400 font-bold uppercase">Valor Unit.</span>
+          <span className="text-lg font-bold text-slate-700">S/ {totalValue.toFixed(0)}</span>
+        </div>
+      </div>
+      
+      {/* Leyenda Compacta */}
+      <div className="w-full mt-4 grid grid-cols-2 gap-x-2 gap-y-1">
+        {activeData.map((item, idx) => (
+          <div key={idx} className="flex items-center text-[10px] text-slate-600">
+            <span className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0" style={{ backgroundColor: item.color }}></span>
+            <span className="truncate flex-1">{item.label}</span>
+            <span className="font-bold ml-1">{Math.round((item.value / totalValue) * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Componente de Barras Simples (HTML/CSS)
+const CostBarChart = ({ results, includeIgv }) => {
+  const maxVal = results.totalPresupuesto;
+  
+  const items = [
+    { label: 'Costo Directo', value: results.costoDirecto, color: 'bg-blue-600', width: (results.costoDirecto / maxVal) * 100 },
+    { label: 'Gastos Gral.', value: results.gastosGenerales, color: 'bg-slate-500', width: (results.gastosGenerales / maxVal) * 100 },
+    { label: 'Utilidad', value: results.utilidad, color: 'bg-emerald-500', width: (results.utilidad / maxVal) * 100 },
+  ];
+
+  if (includeIgv) {
+    items.push({ label: 'IGV (18%)', value: results.igv, color: 'bg-red-400', width: (results.igv / maxVal) * 100 });
+  }
+
+  return (
+    <div className="space-y-3 mt-2">
+      {items.map((item, idx) => (
+        <div key={idx} className="w-full">
+          <div className="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-1">
+            <span>{item.label}</span>
+            <span>S/ {item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+          </div>
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full ${item.color} transition-all duration-700 ease-out`}
+              style={{ width: `${item.width}%` }}
+            ></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Componente para tarjetas de selección
 const SelectionCard = ({ categoryKey, data, selected, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -109,11 +214,15 @@ const SelectionCard = ({ categoryKey, data, selected, onSelect }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-3 overflow-hidden transition-all duration-200">
       <div 
-        className={`p-4 flex items-center justify-between cursor-pointer ${selected ? 'bg-slate-50 border-l-4 border-blue-600' : 'bg-white'}`}
+        className={`p-4 flex items-center justify-between cursor-pointer ${selected ? 'bg-slate-50 border-l-4' : 'bg-white'}`}
+        style={{ borderLeftColor: selected ? data.color : 'transparent' }}
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">{data.label}</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-2">
+             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }}></span>
+             {data.label}
+          </span>
           <span className={`text-base font-semibold ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
             {selectedOption ? `${selectedOption.id} - S/ ${selectedOption.value.toFixed(2)}` : 'Seleccionar categoría...'}
           </span>
@@ -130,7 +239,7 @@ const SelectionCard = ({ categoryKey, data, selected, onSelect }) => {
                 onSelect(categoryKey, option.id);
                 setIsOpen(false);
               }}
-              className={`p-3 pl-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-blue-50 flex justify-between items-center ${selected === option.id ? 'bg-blue-50' : ''}`}
+              className={`p-3 pl-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-white flex justify-between items-center ${selected === option.id ? 'bg-white' : ''}`}
             >
               <div className="flex-1 pr-4">
                 <span className="font-bold text-slate-700 mr-2">{option.id}</span>
@@ -156,11 +265,14 @@ export default function App() {
     muros: '', techos: '', pisos: '', puertas: '', revestimientos: '', banos: '', instalaciones: ''
   });
   
-  // Estados para configuración técnica (Costos Indirectos)
-  const [ggPct, setGgPct] = useState(15);      // Gastos Generales (Default libro: ~10-15%)
-  const [utilidadPct, setUtilidadPct] = useState(10); // Utilidad (Default libro: ~5-10%)
-  const [includeIgv, setIncludeIgv] = useState(false); // IGV 18%
+  // Estados para configuración técnica
+  const [ggPct, setGgPct] = useState(15);      
+  const [utilidadPct, setUtilidadPct] = useState(10); 
+  const [includeIgv, setIncludeIgv] = useState(false); 
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Estado para la vista de resultados (Tabs)
+  const [resultsTab, setResultsTab] = useState('summary'); // 'summary' | 'charts'
 
   const [showResult, setShowResult] = useState(false);
   const resultRef = useRef(null);
@@ -171,35 +283,33 @@ export default function App() {
 
   const calculateTotal = () => {
     let totalUnitValue = 0;
+    const chartData = [];
+
     Object.keys(selections).forEach(key => {
       const selectedId = selections[key];
+      let val = 0;
       if (selectedId) {
         const option = CVU_DATA[key].options.find(opt => opt.id === selectedId);
-        if (option) totalUnitValue += option.value;
+        if (option) val = option.value;
       }
+      totalUnitValue += val;
+      chartData.push({
+        label: CVU_DATA[key].label.split('. ')[1], // Remover número
+        value: val,
+        color: CVU_DATA[key].color
+      });
     });
     
-    // Regla del CVU: "En Edificios aumentar el valor por m2 en 5% a partir del 5to. Piso"
-    // Interpretación para calculadora: Si la edificación tiene 5 pisos o más, se asume mayor complejidad estructural.
     const factorAltura = numPisos >= 5 ? 1.05 : 1.00;
     const unitValueAdjusted = totalUnitValue * factorAltura;
 
     const areaNum = parseFloat(area) || 0;
     
-    // Metodología Libro "Costos y Presupuestos":
-    // 1. Costo Directo (Material + Mano de Obra + Equipos) = CVU Ajustado * Área
     const costoDirecto = unitValueAdjusted * areaNum;
-    
-    // 2. Costo Indirecto (Gastos Generales + Utilidad)
     const gastosGenerales = costoDirecto * (ggPct / 100); 
     const utilidad = costoDirecto * (utilidadPct / 100);
-    
-    // 3. Subtotal
     const subtotal = costoDirecto + gastosGenerales + utilidad;
-
-    // 4. Tributos (IGV)
     const igv = includeIgv ? subtotal * 0.18 : 0;
-    
     const totalPresupuesto = subtotal + igv;
 
     return {
@@ -211,7 +321,8 @@ export default function App() {
       utilidad,
       subtotal,
       igv,
-      totalPresupuesto
+      totalPresupuesto,
+      chartData
     };
   };
 
@@ -227,6 +338,7 @@ export default function App() {
     setNumPisos(1);
     setUsoObra('vivienda');
     setShowResult(false);
+    setResultsTab('summary');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -252,15 +364,15 @@ export default function App() {
               {/* Referencias Legales / Bibliográficas */}
               <div className="flex flex-col gap-1 mb-2 bg-blue-50 p-2 rounded border border-blue-100">
                 <span className="text-[9px] font-bold text-blue-800 leading-tight">
-                  FUENTE: Cuadro de Valores Unitarios Oficiales de Edificaciones para Lima Metropolitana y Provincia Constitucional del Callao Vigente desde el 01 al 31 de Diciembre del 2025
+                  FUENTE: Cuadro de Valores Unitarios Oficiales de Edificaciones para Lima Metropolitana - Diciembre 2025
                 </span>
                 <span className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-1">
                   <BookOpen size={10} /> Libro: Costos y Presupuestos (ISBN N.° 978-612-304-282-0)
                 </span>
               </div>
               
-              <h1 className="text-xl font-extrabold text-slate-800 leading-none mb-1 mt-3 uppercase">Presupuesto Referencial de Obra (CVU)</h1>
-              <h2 className="text-xs font-bold text-slate-500 leading-tight uppercase tracking-wide">Estimación por m² con CVU oficial, actualizada por mes</h2>
+              <h1 className="text-xl font-extrabold text-slate-800 leading-none mb-1 mt-3 uppercase">Presupuesto Referencial (CVU)</h1>
+              <h2 className="text-xs font-bold text-slate-500 leading-tight uppercase tracking-wide">Estimación por m² con CVU oficial</h2>
               
               <div className="flex justify-between items-end mt-2">
                 <button 
@@ -348,7 +460,7 @@ export default function App() {
                {/* Área Techada */}
                <div>
                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Área Techada Total (m²)
+                   Área Techada Total (m²)
                   </label>
                   <div className="relative">
                     <input
@@ -465,62 +577,100 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="p-5 space-y-3 bg-slate-800/90">
-                   {/* Costo Directo */}
-                   <div className="flex justify-between items-center text-xs text-slate-400">
-                    <span>Valor Unitario Base</span>
-                    <span className="font-mono">S/ {results.unitValue.toFixed(2)}</span>
-                   </div>
+                {/* Tabs para Resumen vs Gráficos */}
+                <div className="flex border-b border-slate-700 bg-slate-900/50">
+                   <button 
+                    onClick={() => setResultsTab('summary')}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${resultsTab === 'summary' ? 'text-white bg-slate-800 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
+                   >
+                     <Calculator size={14} /> Resumen
+                   </button>
+                   <button 
+                    onClick={() => setResultsTab('charts')}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${resultsTab === 'charts' ? 'text-white bg-slate-800 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
+                   >
+                     <PieChart size={14} /> Gráficos
+                   </button>
+                </div>
 
-                   {results.factorAltura > 1 && (
-                     <div className="flex justify-between items-center text-xs text-orange-300">
-                      <span>Factor Altura ({numPisos} pisos)</span>
-                      <span className="font-mono">+ 5%</span>
-                     </div>
-                   )}
+                <div className="p-5 bg-slate-800/90">
+                  
+                  {resultsTab === 'summary' ? (
+                    /* === VISTA DE RESUMEN === */
+                    <div className="space-y-3">
+                       <div className="flex justify-between items-center text-xs text-slate-400">
+                         <span>Valor Unitario Base</span>
+                         <span className="font-mono">S/ {results.unitValue.toFixed(2)}</span>
+                       </div>
 
-                   <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-700/50">
-                    <span className="text-white font-bold">Valor Unitario Ajustado</span>
-                    <span className="font-mono text-white font-bold">S/ {results.unitValueAdjusted.toFixed(2)}</span>
-                   </div>
-                   
-                   <div className="flex justify-between items-center text-sm py-1">
-                    <span className="text-white font-bold">1. Costo Directo Total</span>
-                    <span className="font-mono text-white font-bold">S/ {results.costoDirecto.toLocaleString()}</span>
-                   </div>
+                       {results.factorAltura > 1 && (
+                         <div className="flex justify-between items-center text-xs text-orange-300">
+                           <span>Factor Altura ({numPisos} pisos)</span>
+                           <span className="font-mono">+ 5%</span>
+                         </div>
+                       )}
 
-                  {/* Costos Indirectos */}
-                  <div className="pl-3 border-l-2 border-slate-600 space-y-2 py-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Gastos Generales ({ggPct}%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.gastosGenerales.toLocaleString()}</span>
+                       <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-700/50">
+                         <span className="text-white font-bold">Valor Unitario Ajustado</span>
+                         <span className="font-mono text-white font-bold">S/ {results.unitValueAdjusted.toFixed(2)}</span>
+                       </div>
+                       
+                       <div className="flex justify-between items-center text-sm py-1">
+                         <span className="text-white font-bold">1. Costo Directo Total</span>
+                         <span className="font-mono text-white font-bold">S/ {results.costoDirecto.toLocaleString()}</span>
+                       </div>
+
+                       <div className="pl-3 border-l-2 border-slate-600 space-y-2 py-1">
+                         <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-400">Gastos Generales ({ggPct}%)</span>
+                           <span className="font-mono text-slate-300">S/ {results.gastosGenerales.toLocaleString()}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-400">Utilidad ({utilidadPct}%)</span>
+                           <span className="font-mono text-slate-300">S/ {results.utilidad.toLocaleString()}</span>
+                         </div>
+                       </div>
+
+                       <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50">
+                         <span className="text-slate-300 uppercase font-semibold">Subtotal</span>
+                         <span className="font-mono text-white">S/ {results.subtotal.toLocaleString()}</span>
+                       </div>
+
+                       {includeIgv && (
+                         <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-400">IGV (18%)</span>
+                           <span className="font-mono text-slate-300">S/ {results.igv.toLocaleString()}</span>
+                         </div>
+                       )}
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Utilidad ({utilidadPct}%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.utilidad.toLocaleString()}</span>
-                    </div>
-                  </div>
+                  ) : (
+                    /* === VISTA DE GRÁFICOS === */
+                    <div className="space-y-8 animate-in fade-in duration-300">
+                      
+                      {/* Gráfico 1: Distribución del Valor Unitario */}
+                      <div className="bg-white rounded-lg p-4">
+                         <h4 className="text-slate-700 text-xs font-bold uppercase mb-4 flex items-center gap-2 border-b pb-2">
+                           <PieChart size={14} className="text-blue-600"/> Incidencia por Componente (m²)
+                         </h4>
+                         <DonutChart data={results.chartData} />
+                      </div>
 
-                  {/* Subtotal */}
-                  <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-700/50">
-                    <span className="text-slate-300 uppercase font-semibold">Subtotal</span>
-                    <span className="font-mono text-white">S/ {results.subtotal.toLocaleString()}</span>
-                  </div>
-
-                  {/* IGV */}
-                  {includeIgv && (
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">IGV (18%)</span>
-                      <span className="font-mono text-slate-300">S/ {results.igv.toLocaleString()}</span>
+                      {/* Gráfico 2: Estructura de Costos */}
+                      <div className="bg-white rounded-lg p-4">
+                         <h4 className="text-slate-700 text-xs font-bold uppercase mb-4 flex items-center gap-2 border-b pb-2">
+                           <BarChart3 size={14} className="text-emerald-600"/> Estructura Total del Presupuesto
+                         </h4>
+                         <CostBarChart results={results} includeIgv={includeIgv} />
+                      </div>
                     </div>
                   )}
-                  
+
                   <button 
                     onClick={handlePrint}
-                    className="w-full mt-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-600"
+                    className="w-full mt-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-600"
                   >
                     <Printer size={16} />
-                    Imprimir Reporte
+                    Imprimir Reporte Completo
                   </button>
                 </div>
               </div>
@@ -533,7 +683,6 @@ export default function App() {
           <p className="text-[10px] font-bold text-gray-500 tracking-wide">Elaborado por Lab Urban Risk</p>
           
           <div className="flex items-center gap-6">
-            {/* Map Icon */}
             <a 
               href="https://musucancha-rgb.github.io/PERU.Valor_arancelario_terrenos/" 
               target="_blank" 
@@ -546,7 +695,6 @@ export default function App() {
             
             <div className="w-px h-6 bg-gray-800"></div>
 
-            {/* Social Icons */}
             <a 
               href="https://youtube.com/@laburbanrisk" 
               target="_blank" 
